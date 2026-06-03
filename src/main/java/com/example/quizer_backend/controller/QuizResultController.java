@@ -39,19 +39,19 @@ public class QuizResultController {
         try {
             // Защита от пустых данных: проверяем также и новое поле questionId
             if (quizResult.getSessionId() == null || quizResult.getStudentName() == null || quizResult.getQuestionId() == null) {
-                log.warn("[⚠️ ВНИМАНИЕ] Мобилка прислала пустые критические поля (sessionId, studentName или questionId)!");
+                log.warn("[ВНИМАНИЕ] Мобилка прислала пустые критические поля (sessionId, studentName или questionId)!");
             }
 
             QuizResult savedResult = quizResultRepository.save(quizResult);
 
             // ЛОГ УСПЕШНОЙ ЗАПИСИ
-            log.info("[✓ УСПЕХ] Данные сохранены в таблицу 'results'. Присвоен ID записи: {}", savedResult.getId());
+            log.info("[УСПЕХ] Данные сохранены в таблицу 'results'. Присвоен ID записи: {}", savedResult.getId());
             log.info("==========================================================\n");
             return ResponseEntity.ok().build();
 
         } catch (Exception e) {
             // ЛОГ ОШИБКИ БАЗЫ ДАННЫХ
-            log.error("[💥 ОШИБКА БД] Не удалось записать ответ студента в PostgreSQL!");
+            log.error("[ОШИБКА БД] Не удалось записать ответ студента в PostgreSQL!");
             log.error("Текст ошибки: {}", e.getMessage());
             log.error("==========================================================\n");
             return ResponseEntity.internalServerError().build();

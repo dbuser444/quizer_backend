@@ -18,6 +18,13 @@ public interface SessionRepository extends JpaRepository<GameSession, Integer> {
     Optional<GameSession> findById(Integer id);
 
     /**
+     * ИСПРАВЛЕНИЕ СОРТИРОВКИ: Поиск всех сессий конкретного квиза с сортировкой от свежих к старым.
+     * Благодаря этому вчерашние и сегодняшние игры будут на самом верху списка.
+     */
+    @EntityGraph(attributePaths = {"quiz"})
+    List<GameSession> findByQuiz_IdOrderByCreatedAtDesc(Integer quizId);
+
+    /**
      * Старый метод (по username автора) — оставляем, чтобы ничего не сломать на фронтенде
      */
     List<GameSession> findByStatusAndQuizAuthorUsernameOrderByCreatedAtDesc(String status, String username);

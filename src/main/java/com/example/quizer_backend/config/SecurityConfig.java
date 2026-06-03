@@ -1,6 +1,6 @@
 package com.example.quizer_backend.config;
 
-import com.example.quizer_backend.config.IpBlacklistFilter; // Убедись, что импорт твоего фильтра корректен
+import com.example.quizer_backend.config.IpBlacklistFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,14 +49,22 @@ public class SecurityConfig {
 
                         // Публичные REST эндпоинты
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // ИСПРАВЛЕНО ТУТ: заменили apiMatchers на requestMatchers
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+
+                        // Доступ к сессиям
                         .requestMatchers("/api/quizzes/session/**").permitAll()
                         .requestMatchers("/api/quizzes/sessions/**").permitAll()
 
-                        // ИСПРАВЛЕНО: Явно открываем доступ для сохранения ответов с мобилки без авторизации
+                        // Извлечение истории сессий и ведомости результатов на сайте
+                        .requestMatchers("/api/quizzes/*/sessions").permitAll()
+                        .requestMatchers("/api/quizzes/sessions/*/results").permitAll()
+
+                        // Прием ответов с мобилки без авторизации
                         .requestMatchers("/api/quizzes/save-result").permitAll()
 
+                        // Остальные публичные REST-контроллеры
                         .requestMatchers("/api/sessions/**").permitAll()
                         .requestMatchers("/api/participants/**").permitAll()
                         .requestMatchers("/api/questions/**").permitAll()

@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/quizzes")
@@ -65,33 +67,89 @@ public class QuizRestController {
     }
 
     /**
-     * ОБНОВЛЕНО: Прием ответов БЕЗ ИЗМЕНЕНИЯ структуры базы данных (Entity остается старой).
-     * Текстовые ответы (тип text/multiple) прокидываются через query-параметр textAnswer
-     * и улетают прямиком на веб-интерфейс преподавателя.
-     * Эндпоинт: POST /api/quizzes/submit-answer
+     * ИСПРАВЛЕНИЕ ОШИБКИ 404 ДЛЯ ЛЕВОГО МЕНЮ:
+     * Получение списка всех запущенных сессий для конкретной викторины (по её ID).
+     * Сортировка настроена от самых свежих к старым.
+     * URL: GET /api/quizzes/{quizId}/sessions
+     */
+    @GetMapping("/{quizId}/sessions")
+    public ResponseEntity<List<GameSession>> getSessionsByQuizId(@PathVariable Integer quizId) {
+        log.info("[REST] Поступил запрос истории сессий с сайта для викторины с ID: {}", quizId);
+
+        List<GameSession> sessions = sessionRepository.findByQuiz_IdOrderByCreatedAtDesc(quizId);
+
+        log.info("[REST] УСПЕХ: Отправлено на сайт {} сессий для квиза ID: {}", sessions.size(), quizId);
+        return ResponseEntity.ok(sessions);
+    }
+
+    /**
+     * ИСПРАВЛЕНИЕ ДЛЯ ПРАВОГО ЭКРАНА (ВЕДОМОСТЬ РЕЗУЛЬТАТОВ):
+     * Агрегационный эндпоинт, который по ID сессии считает правильные ответы студентов из таблицы 'results'.
+     * URL: GET /api/quizzes/sessions/{sessionId}/results
+     */
+    @GetMapping("/sessions/{sessionId}/results")
+    public ResponseEntity<List<Map<String, Object>>> getSessionParticipantsResults(@PathVariable Integer sessionId) {
+        log.info("[REST] Запрос ведомости результатов для сессии ID: {}", sessionId);
+
+        // Достаем все клики/ответы из таблицы результатов
+        List<QuizResult> allResults = quizResultRepository.findBySessionId(sessionId);
+
+        if (allResults.isEmpty()) {
+            log.warn("[REST] В таблице results нет данных для сессии ID: {}", sessionId);
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Группируем верные ответы по имени студента (считаем количество true флагов)
+        Map<String, Long> scoreMap = allResults.stream()
+                .filter(r -> r.getIsCorrect() != null && r.getIsCorrect())
+                .collect(Collectors.groupingBy(
+                        QuizResult::getStudentName,
+                        Collectors.counting()
+                ));
+
+        // Находим всех уникальных студентов сессии
+        Set<String> allStudents = allResults.stream()
+                .map(r -> r.getStudentName() != null ? r.getStudentName() : "Аноним")
+                .collect(Collectors.toSet());
+
+        // Мапим в красивую структуру для фронтенда [{ studentName: "Мария", score: 5 }]
+        List<Map<String, Object>> leaderboard = allStudents.stream()
+                .map(name -> {
+                    long correctCount = scoreMap.getOrDefault(name, 0L);
+                    return Map.<String, Object>of(
+                            "studentName", name,
+                            "score", correctCount
+                    );
+                })
+                .sorted((a, b) -> Long.compare((Long) b.get("score"), (Long) a.get("score")))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(leaderboard);
+    }
+
+    /**
+     * Прием ответов БЕЗ ИЗМЕНЕНИЯ структуры базы данных (Entity остается старой).
      */
     @PostMapping("/submit-answer")
     public ResponseEntity<QuizResult> submitAnswer(
             @RequestBody QuizResult result,
-            @RequestParam(required = false) String textAnswer // Перехватываем текст без изменения полей Entity
+            @RequestParam(required = false) String textAnswer
     ) {
         String displayAnswer = (textAnswer != null) ? textAnswer : "ID вариантов: " + result.getAnswerId();
 
         log.info("[REST] Получен асинхронный ответ от студента '{}' для сессии ID: {}, Вопрос ID: {}, Ответ: '{}'",
                 result.getStudentName(), result.getSessionId(), result.getQuizId(), displayAnswer);
 
-        // 1. Железно сохраняем в старую базу (в поле answer_id запишется Integer, переданный мобилкой, например 0)
         QuizResult savedResult = quizResultRepository.save(result);
 
-        // 2. Транслируем обновление прогресса на сайт преподавателя в реальном времени.
         String progressTopic = "/topic/session/" + result.getSessionId() + "/progress";
 
+        // (Object) перед Map.of решает проблему Ambiguous method call компилятора
         messagingTemplate.convertAndSend(progressTopic, (Object) Map.of(
                 "action", "STUDENT_PROGRESS",
                 "studentName", result.getStudentName() != null ? result.getStudentName() : "Аноним",
                 "userId", result.getUserId() != null ? result.getUserId() : 0,
                 "quizId", result.getQuizId(),
-                // На фронтенд шлем текстовое содержимое (если есть), иначе форматируем ID ответа
                 "answerContent", (textAnswer != null) ? textAnswer : "Вариант №" + result.getAnswerId(),
                 "isCorrect", result.getIsCorrect(),
                 "timeSpent", result.getTimeSpent()
@@ -193,7 +251,7 @@ public class QuizRestController {
     }
 
     /**
-     * Успешное завершение сессии по PIN-коду (когда вопросы закончились).
+     * Успешное завершение сессии по PIN-коду.
      */
     @PostMapping("/sessions/{pin}/finish")
     public void finish(@PathVariable String pin, Principal principal, HttpServletRequest request) {
@@ -207,7 +265,7 @@ public class QuizRestController {
     }
 
     /**
-     * Принудительное прерывание/отмена сессии по PIN-коду (кнопка Отменить/Прервать).
+     * Принудительное прерывание/отмена сессии по PIN-коду.
      */
     @PostMapping("/sessions/{pin}/terminate")
     public ResponseEntity<?> terminateSession(@PathVariable String pin, Principal principal, HttpServletRequest request) {
@@ -223,7 +281,7 @@ public class QuizRestController {
     }
 
     /**
-     * Проверка PIN-кода для мобильного приложения (вход студента в викторину).
+     * Проверка PIN-кода для мобильного приложения.
      */
     @GetMapping("/session/{pin}")
     public ResponseEntity<?> checkPin(@PathVariable String pin) {
