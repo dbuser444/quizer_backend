@@ -25,7 +25,7 @@ public class ParticipantRestController {
     @PostMapping("/add")
     public ResponseEntity<?> addParticipant(@RequestBody Map<String, Object> request) {
         try {
-            // Безопасное чтение числа (избегаем ClassCastException)
+            // Безопасное чтение числа
             Number sessionIdNum = (Number) request.get("sessionId");
             if (sessionIdNum == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "sessionId отсутствует"));
@@ -58,7 +58,6 @@ public class ParticipantRestController {
             String destination = "/topic/session/" + pinCode + "/players";
             log.info("[WEBSOCKET] Отправка уведомления о новом игроке в топик: {}", destination);
 
-            // Явное приведение к (Object) убирает ошибку компиляции Ambiguous method call
             messagingTemplate.convertAndSend(destination, (Object) socketPayload);
 
             return ResponseEntity.ok(Map.of("participantId", savedParticipant.getId()));

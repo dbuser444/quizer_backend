@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * REST-контроллер для обработки и сохранения индивидуальных ответов студентов.
- * Архитектура построена на основе паттерна REST API (см. Спринг Х., "Spring в действии", 2020 г.).
  */
 @RestController
 @RequestMapping("/api/quizzes")
@@ -20,24 +19,23 @@ public class QuizResultController {
     private final QuizResultRepository quizResultRepository;
 
     /**
-     * Прием ответов от мобильного приложения через классический HTTP POST.
-     * Добавлено подробное логирование для отслеживания шагов мобильного клиента.
+     * Прием ответов от мобильного приложения
+     * Добавлено логирование для отслеживания шагов мобильного клиента.
      */
     @PostMapping("/save-result")
     public ResponseEntity<Void> saveResult(@RequestBody QuizResult quizResult) {
-        // КРАСИВЫЙ СТАРТОВЫЙ ЛОГ: Сразу видим все раздельные поля, включая QuestionId
-        log.info("=================== [МОБИЛЬНЫЙ ПЕРЕХВАТ] ===================");
+        log.info("=================== [МОБИЛЬНЫЙ ВХОД] ===================");
         log.info(" Студент стучится в базу: '{}'", quizResult.getStudentName());
         log.info(" ID Сессии (SessionId):   {}", quizResult.getSessionId());
         log.info(" ID Квиза/Теста (QuizId):  {}", quizResult.getQuizId());
-        log.info(" ID Вопроса (QuestionId): {}", quizResult.getQuestionId()); // Добавлено в логи
+        log.info(" ID Вопроса (QuestionId): {}", quizResult.getQuestionId());
         log.info(" Выбранный ответ (AnswerId): {}", quizResult.getAnswerId() != null ? quizResult.getAnswerId() : "ПРОПУСК ВОПРОСА");
         log.info(" Время на размышление:    {} сек.", quizResult.getTimeSpent());
-        log.info(" Вердикт приложения:      {}", quizResult.getIsCorrect() != null && quizResult.getIsCorrect() ? "✅ ВЕРНО" : "❌ НЕВЕРНО");
+        log.info(" Вердикт приложения:      {}", quizResult.getIsCorrect() != null && quizResult.getIsCorrect() ? " ВЕРНО" : " НЕВЕРНО");
         log.info("----------------------------------------------------------");
 
         try {
-            // Защита от пустых данных: проверяем также и новое поле questionId
+            // Защита от пустых данных
             if (quizResult.getSessionId() == null || quizResult.getStudentName() == null || quizResult.getQuestionId() == null) {
                 log.warn("[ВНИМАНИЕ] Мобилка прислала пустые критические поля (sessionId, studentName или questionId)!");
             }

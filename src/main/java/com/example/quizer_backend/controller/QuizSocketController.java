@@ -113,7 +113,6 @@ public class QuizSocketController {
 
     /**
      * ОБНОВЛЕНО: Прием ответов от мобильного приложения по веб-сокетам.
-     * Теперь данные раскладываются четко по полям quizId (ID викторины) и questionId (ID вопроса).
      */
     @MessageMapping("/quiz/session/{sessionId}/submit-answer")
     @SendTo("/topic/session/{sessionId}/progress")
@@ -147,12 +146,11 @@ public class QuizSocketController {
                     .orElse(false);
         }
 
-        // ОБНОВЛЕНО: Мапим данные в базу строго по новой структуре QuizResult
         QuizResult result = new QuizResult();
         result.setSessionId(sessionId);
         result.setStudentName(studentName != null ? studentName : "Аноним");
-        result.setQuizId(session.getQuiz().getId().intValue()); // ID самого теста (викторины)
-        result.setQuestionId(targetQuestionId);                 // ID конкретного текущего вопроса
+        result.setQuizId(session.getQuiz().getId().intValue());
+        result.setQuestionId(targetQuestionId);
         result.setAnswerId(answerId);
         result.setIsCorrect(isCorrect);
         result.setTimeSpent(timeSpent);
@@ -169,7 +167,7 @@ public class QuizSocketController {
         return Map.of(
                 "action", "STUDENT_PROGRESS",
                 "studentName", result.getStudentName(),
-                "quizId", targetQuestionId, // Передаем ID вопроса на фронтенд панели
+                "quizId", targetQuestionId,
                 "isCorrect", isCorrect
         );
     }

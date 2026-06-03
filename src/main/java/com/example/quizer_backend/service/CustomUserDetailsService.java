@@ -19,7 +19,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // ВРЕМЕННО: Генерируем правильный хеш для 12345 прямо в коде
-        // После того как увидишь его в консоли, этот блок нужно будет удалить
         String tempHash = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("12345");
         System.out.println("ПРАВИЛЬНЫЙ ХЕШ ДЛЯ 12345: " + tempHash);
 

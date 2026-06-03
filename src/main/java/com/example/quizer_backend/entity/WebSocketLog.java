@@ -18,16 +18,16 @@ public class WebSocketLog {
     private Long id;
 
     @Column(name = "session_id")
-    private Integer sessionId; // Привязано к ID игровой сессии (Integer согласно архитектуре проекта)
+    private Integer sessionId;
 
     @Column(name = "participant_id")
-    private Long participantId; // Привязано к ID участника-студента
+    private Long participantId;
 
     @Column(name = "event_type", nullable = false)
     private String eventType; // CONNECT, DISCONNECT, SEND_ANSWER, NEXT_QUESTION
 
     @Column(name = "payload", columnDefinition = "TEXT")
-    private String payload; // Тело сообщения (JSON строка или системный фрейм)
+    private String payload;
 
     @Column(name = "client_ip")
     private String clientIp;

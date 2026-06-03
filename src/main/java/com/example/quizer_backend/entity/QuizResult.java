@@ -20,17 +20,20 @@ public class QuizResult {
     @Column(name = "student_name")
     private String studentName;
 
-    @Column(name = "quiz_id") // ID самой викторины (теста)
+    @Column(name = "quiz_id")
     private Integer quizId;
 
-    @Column(name = "question_id") // <-- ДОБАВЛЕНО ПОЛЕ ДЛЯ ИДЕНТИФИКАТОРА ВОПРОСА
+    @Column(name = "question_id")
     private Integer questionId;
 
-    @Column(name = "answer_id") // ID выбранного ответа
+    @Column(name = "answer_id")
     private Integer answerId;
 
     @Column(name = "is_correct")
     private Boolean isCorrect;
+
+    @Column(name = "response_time")
+    private Double responseTime;
 
     @Column(name = "time_spent")
     private Double timeSpent;

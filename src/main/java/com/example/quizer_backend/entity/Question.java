@@ -9,18 +9,18 @@ import java.util.List;
 @Entity
 @Table(name = "questions")
 @Data
-@NoArgsConstructor // Необходим для Hibernate
+@NoArgsConstructor
 public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ИСПРАВЛЕНО: Long вместо Integer
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "quiz_id")
     @JsonIgnore
     private Quiz quiz;
 
-    @Column(nullable = false) // Указываем, что текст вопроса обязателен
+    @Column(nullable = false)
     private String content;
 
     @Column(name = "type", nullable = false)
@@ -28,11 +28,10 @@ public class Question {
 // По умолчанию ставим "single".
 // Фронтенд будет присылать "single", "multiple" или "text".
 
-    private Integer points = 10; // Можно поставить 10 по умолчанию
+    private Integer points = 10;
 
     private Integer timer = 30;
 
-    // Важно: orphanRemoval гарантирует, что старые ответы удалятся при обновлении вопроса
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Answer> answers;
 }

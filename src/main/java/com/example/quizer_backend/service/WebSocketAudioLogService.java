@@ -22,7 +22,6 @@ public class WebSocketAudioLogService {
     @Transactional
     public void logWebSocketEvent(Integer sessionId, Long participantId, String eventType, String payload, String ipAddress) {
         try {
-            // Обрезаем payload, если он слишком огромный, чтобы не перегружать СУБД
             String optimizedPayload = (payload != null && payload.length() > 1000)
                     ? payload.substring(0, 1000) + "... [TRUNCATED]"
                     : payload;

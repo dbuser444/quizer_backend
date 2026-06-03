@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @Data
 @NoArgsConstructor
-// ИСПРАВЛЕНО: Игнорируем прокси-поля Hibernate, чтобы они не летели в JSON и не ломали парсинг на Android
+
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
     @Id

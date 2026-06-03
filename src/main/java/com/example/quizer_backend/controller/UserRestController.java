@@ -38,18 +38,18 @@ public class UserRestController {
     public ResponseEntity<User> updateProfile(@RequestBody User updatedData, Principal principal) {
         log.info("Запрос на обновление профиля от пользователя: {}", principal.getName());
 
-        // 1. Ищем текущего пользователя, совершающего действие
+        // 1. Ищем текущего пользователя
         User currentUser = userRepository.findByUsername(principal.getName())
                 .orElseThrow(() -> new RuntimeException("Авторизованный пользователь не найден"));
 
-        // 2. ИСПРАВЛЕНО: Создаем копию старого состояния через обычный конструктор (взамен builder)
+        // 2. Создаем копию старого состояния
         User oldStateCopy = new User();
         oldStateCopy.setId(currentUser.getId());
         oldStateCopy.setFullName(currentUser.getFullName());
         oldStateCopy.setUsername(currentUser.getUsername());
         oldStateCopy.setRole(currentUser.getRole());
 
-        // 3. ИСПРАВЛЕНО: Обновляем поля сущности (работаем через поле username)
+        // 3.  Обновляем поля сущности
         if (updatedData.getFullName() != null) {
             currentUser.setFullName(updatedData.getFullName());
         }

@@ -58,16 +58,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     String eventType = command.name();
                     String destination = accessor.getDestination();
 
-                    // Отбираем только ключевые события, игнорируя системные пинги (сердцебиение)
+                    // Отбираем только ключевые события
                     if (command == StompCommand.CONNECT || command == StompCommand.SEND || command == StompCommand.DISCONNECT) {
 
-                        // ИСПРАВЛЕНО: Заворачиваем весь блок логирования в try-catch!
-                        // Если логирование упадет, мы поймаем ошибку, но НЕ уроним сокет-соединение.
                         try {
                             Integer realSessionId = null;
 
                             if (destination != null) {
-                                // Вытаскиваем ПИН-код из пути (например, /app/quiz/177760/join или /topic/session/177760/players)
+                                // Вытаскиваем ПИН-код
                                 String pinCode = extractPinFromDestination(destination);
 
                                 if (pinCode != null) {
@@ -79,19 +77,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 }
                             }
 
-                            // Извлекаем тело сообщения в виде строки
+                            // Извлекаем тело сообщения
                             String payload = null;
                             if (message.getPayload() instanceof byte[]) {
                                 payload = new String((byte[]) message.getPayload());
                             }
 
-                            // Формируем красивое описание для лога
                             String formattedPayload = destination != null
                                     ? "Назначение: " + destination + " | Тело: " + payload
                                     : payload;
 
-                            // Вызываем твой сервис для записи в таблицу websocket_logs
-                            // Передаем realSessionId (который мы нашли по ПИН-коду, либо null, если это общий коннект)
+                            // Вызываем сервис для записи в таблицу websocket_logs
                             webSocketAudioLogService.logWebSocketEvent(
                                     realSessionId,
                                     null,
@@ -101,8 +97,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             );
 
                         } catch (Exception e) {
-                            // КРИТИЧЕСКИЙ КЛЮЧ К СТАБИЛЬНОСТИ:
-                            // Логируем ошибку записи лога в консоль бэкенда, но не пробрасываем её дальше!
                             log.error("[ОШИБКА АУДИТА СОКЕТОВ] Не удалось сохранить запись в websocket_logs, но игра продолжается: ", e);
                         }
                     }

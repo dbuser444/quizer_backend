@@ -90,7 +90,6 @@ public class QuizService {
 
     /**
      * Завершение сессии по PIN-коду.
-     * ИСПРАВЛЕНО: Теперь при закрытии игры проставляется точное время финиша.
      */
     @Transactional
     public void finishSession(String pin) {
@@ -98,7 +97,7 @@ public class QuizService {
 
         sessionRepository.findByPinCode(pin).ifPresentOrElse(session -> {
             session.setStatus("finished");
-            session.setFinishedAt(LocalDateTime.now()); // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Пишем время окончания!
+            session.setFinishedAt(LocalDateTime.now());
             sessionRepository.save(session);
             log.info("Сервис: статус сессии {} изменен на 'finished'. Время закрытия: {}", pin, session.getFinishedAt());
         }, () -> log.warn("Сервис: не удалось завершить сессию. Сессия с PIN {} не найдена в БД", pin));
@@ -106,8 +105,6 @@ public class QuizService {
 
     /**
      * Поиск активной игровой сессии по PIN-коду для мобильного приложения и веб-панели.
-     * Благодаря настроенному @EntityGraph в репозитории, этот метод вернет сессию
-     * сразу вместе со связанным Quiz и списком Questions за один запрос.
      */
     @Transactional(readOnly = true)
     public Optional<GameSession> findActiveSessionByPin(String pin) {

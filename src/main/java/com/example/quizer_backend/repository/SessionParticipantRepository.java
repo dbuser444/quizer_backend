@@ -9,9 +9,5 @@ import java.util.List;
 @Repository
 public interface SessionParticipantRepository extends JpaRepository<SessionParticipant, Integer> {
 
-    /**
-     * ДОБАВЛЕНО: Находит всех студентов (участников), подключенных к конкретной сессии.
-     * Spring Data JPA автоматически сгенерирует SQL-запрос на основе этого имени метода.
-     */
     List<SessionParticipant> findBySessionId(Integer sessionId);
 }

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "game_sessions")
 @Data
-@NoArgsConstructor // Необходим для Hibernate
+@NoArgsConstructor
 public class GameSession {
 
     @Id

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth") // Это общий корень для всех методов в классе
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -48,7 +48,6 @@ public class AuthController {
                                        ));
     }
 
-    // Этот метод теперь будет доступен по адресу /api/auth/login
     @PostMapping("/login")
     public ResponseEntity<?> login() {
         return ResponseEntity.ok(Map.of("message", "Вы успешно вошли в систему"));

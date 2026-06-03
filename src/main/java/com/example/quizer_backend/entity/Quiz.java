@@ -12,18 +12,16 @@ import java.util.List;
 public class Quiz {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ИСПРАВЛЕНО: с Integer на Long
+    private Long id;
 
     private String title;
     private String description;
 
-    // Новое поле для обложки викторины
     private String imageUrl;
 
     @Column(name = "is_public")
     private Boolean isPublic = false;
 
-    // cascade = ALL позволяет сохранять вопросы вместе с квизом одним запросом
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
 

@@ -7,6 +7,5 @@ import java.util.List;
 
 @Repository
 public interface QuizResultRepository extends JpaRepository<QuizResult, Integer> {
-    // Метод для вытаскивания всех ответов по ID сессии
     List<QuizResult> findBySessionId(Integer sessionId);
 }

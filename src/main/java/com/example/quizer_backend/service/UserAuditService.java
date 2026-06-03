@@ -23,12 +23,12 @@ public class UserAuditService {
     @Transactional
     public void auditUserChanges(User oldUser, User newUser, Long changedById) {
         try {
-            // 1. Проверяем изменение ФИО (Используем getFullName)
+            // 1. Проверяем изменение ФИО
             if (!Objects.equals(oldUser.getFullName(), newUser.getFullName())) {
                 saveAuditLog(oldUser.getId(), changedById, "full_name", oldUser.getFullName(), newUser.getFullName());
             }
 
-            // 2. Проверяем изменение Логина/Email (Используем getUsername в соответствии с БД)
+            // 2. Проверяем изменение Логина/Email
             if (!Objects.equals(oldUser.getUsername(), newUser.getUsername())) {
                 saveAuditLog(oldUser.getId(), changedById, "username", oldUser.getUsername(), newUser.getUsername());
             }

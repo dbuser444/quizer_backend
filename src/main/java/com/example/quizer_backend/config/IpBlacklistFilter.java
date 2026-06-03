@@ -25,7 +25,6 @@ public class IpBlacklistFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 1. ЗЕЛЕНЫЙ КОРИДОР ДЛЯ WEBSOCKET: сокеты фильтр вообще не трогает
         if (path != null && path.startsWith("/ws-quiz")) {
             filterChain.doFilter(request, response);
             return;
@@ -33,14 +32,13 @@ public class IpBlacklistFilter extends OncePerRequestFilter {
 
         String clientIp = request.getRemoteAddr();
 
-        // 2. ЗАЩИТА РАЗРАБОТЧИКА: игнорируем локальный хост (IPv4 и IPv6 петли), чтобы не ломать тесты
         if ("127.0.0.1".equals(clientIp) || "0:0:0:0:0:0:0:1".equals(clientIp) || "::1".equals(clientIp)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // 3. Проверяем, находится ли реальный IP в таблице активных банов
+            //  Проверяем, находится ли реальный IP в таблице активных банов
             boolean isBanned = ipBlacklistRepository.existsByIpAddressAndExpiresAtAfter(clientIp, LocalDateTime.now());
 
             if (isBanned) {
@@ -48,10 +46,9 @@ public class IpBlacklistFilter extends OncePerRequestFilter {
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\": \"Доступ ограничен. Ваш IP-адрес временно заблокирован подсистемой безопасности.\"}");
-                return; // Прерываем обработку запроса
+                return;
             }
         } catch (Exception e) {
-            // Если в базе произошел сбой при парсинге IP — логируем, но не ломаем приложение
             logger.error("Ошибка проверки IP в черном списке: " + e.getMessage());
         }
 

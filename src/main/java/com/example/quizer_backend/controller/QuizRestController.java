@@ -67,10 +67,8 @@ public class QuizRestController {
     }
 
     /**
-     * ИСПРАВЛЕНИЕ ОШИБКИ 404 ДЛЯ ЛЕВОГО МЕНЮ:
      * Получение списка всех запущенных сессий для конкретной викторины (по её ID).
      * Сортировка настроена от самых свежих к старым.
-     * URL: GET /api/quizzes/{quizId}/sessions
      */
     @GetMapping("/{quizId}/sessions")
     public ResponseEntity<List<GameSession>> getSessionsByQuizId(@PathVariable Integer quizId) {
@@ -83,23 +81,28 @@ public class QuizRestController {
     }
 
     /**
-     * ИСПРАВЛЕНИЕ ДЛЯ ПРАВОГО ЭКРАНА (ВЕДОМОСТЬ РЕЗУЛЬТАТОВ):
-     * Агрегационный эндпоинт, который по ID сессии считает правильные ответы студентов из таблицы 'results'.
-     * URL: GET /api/quizzes/sessions/{sessionId}/results
+     * Берем реальное время создания сессии из таблицы game_sessions.
      */
     @GetMapping("/sessions/{sessionId}/results")
     public ResponseEntity<List<Map<String, Object>>> getSessionParticipantsResults(@PathVariable Integer sessionId) {
         log.info("[REST] Запрос ведомости результатов для сессии ID: {}", sessionId);
 
-        // Достаем все клики/ответы из таблицы результатов
+        // 1. Извлекаем ответы студентов
         List<QuizResult> allResults = quizResultRepository.findBySessionId(sessionId);
+
+        // 2. Ищем саму сессию, чтобы забрать её настоящее время старта
+        String sessionTimeStr = "";
+        var sessionOpt = sessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent() && sessionOpt.get().getCreatedAt() != null) {
+            sessionTimeStr = sessionOpt.get().getCreatedAt().toString();
+        }
 
         if (allResults.isEmpty()) {
             log.warn("[REST] В таблице results нет данных для сессии ID: {}", sessionId);
             return ResponseEntity.ok(List.of());
         }
 
-        // Группируем верные ответы по имени студента (считаем количество true флагов)
+        // 3. Считаем количество правильных ответов
         Map<String, Long> scoreMap = allResults.stream()
                 .filter(r -> r.getIsCorrect() != null && r.getIsCorrect())
                 .collect(Collectors.groupingBy(
@@ -107,18 +110,21 @@ public class QuizRestController {
                         Collectors.counting()
                 ));
 
-        // Находим всех уникальных студентов сессии
+        // Получаем список уникальных участников
         Set<String> allStudents = allResults.stream()
                 .map(r -> r.getStudentName() != null ? r.getStudentName() : "Аноним")
                 .collect(Collectors.toSet());
 
-        // Мапим в красивую структуру для фронтенда [{ studentName: "Мария", score: 5 }]
+        // 4. Собираем JSON с гарантированно валидной строкой даты
+        final String finalSessionTime = sessionTimeStr;
         List<Map<String, Object>> leaderboard = allStudents.stream()
                 .map(name -> {
                     long correctCount = scoreMap.getOrDefault(name, 0L);
                     return Map.<String, Object>of(
                             "studentName", name,
-                            "score", correctCount
+                            "score", correctCount,
+                            "joinedAt", finalSessionTime,
+                            "entryTime", finalSessionTime
                     );
                 })
                 .sorted((a, b) -> Long.compare((Long) b.get("score"), (Long) a.get("score")))
@@ -128,7 +134,7 @@ public class QuizRestController {
     }
 
     /**
-     * Прием ответов БЕЗ ИЗМЕНЕНИЯ структуры базы данных (Entity остается старой).
+     * Прием ответов
      */
     @PostMapping("/submit-answer")
     public ResponseEntity<QuizResult> submitAnswer(
@@ -144,7 +150,6 @@ public class QuizRestController {
 
         String progressTopic = "/topic/session/" + result.getSessionId() + "/progress";
 
-        // (Object) перед Map.of решает проблему Ambiguous method call компилятора
         messagingTemplate.convertAndSend(progressTopic, (Object) Map.of(
                 "action", "STUDENT_PROGRESS",
                 "studentName", result.getStudentName() != null ? result.getStudentName() : "Аноним",

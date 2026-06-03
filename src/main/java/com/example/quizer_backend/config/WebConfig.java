@@ -9,7 +9,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Связываем URL путь /uploads/** с физической папкой uploads/ в корне проекта
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
     }

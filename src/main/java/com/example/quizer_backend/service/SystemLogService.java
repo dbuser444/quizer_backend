@@ -19,7 +19,7 @@ public class SystemLogService {
     private final SystemSettingRepository settingRepository;
 
     /**
-     * Автоматическая запись системного лога на основе HTTP-запроса преподавателя
+     * Автоматическая запись системного лога
      */
     @Transactional
     public void writeLog(Long userId, String action, String entity, Long entityId, HttpServletRequest request) {
@@ -44,7 +44,7 @@ public class SystemLogService {
     }
 
     /**
-     * Получение глобальной настройки из БД с дефолтным значением на случай отсутствия ключа
+     * Получение глобальной настройки из БД
      */
     @Transactional(readOnly = true)
     public String getSettingValue(String key, String defaultValue) {
