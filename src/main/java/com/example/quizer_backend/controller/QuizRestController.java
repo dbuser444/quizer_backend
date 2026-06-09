@@ -13,6 +13,7 @@ import com.example.quizer_backend.service.SystemLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -328,5 +329,71 @@ public class QuizRestController {
                     log.error("Запрос отклонен: игровая сессия с ID {} не существует в системе", id);
                     return ResponseEntity.notFound().build();
                 });
+    }
+
+    /**
+     * ЭНДПОИНТ ДЛЯ ЭКСПОРТА В CSV:
+     * Динамически собирает матрицу результатов сессии и отдает в виде потока скачивания.
+     * URL: GET /api/quizzes/sessions/{sessionId}/export-csv
+     */
+    @GetMapping("/sessions/{sessionId}/export-csv")
+    public void exportSessionToCsv(@PathVariable Integer sessionId, jakarta.servlet.http.HttpServletResponse response) {
+        log.info("[CSV EXPORT] Запрос на экспорт результатов сессии ID: {}", sessionId);
+
+        try {
+            // 1. Извлекаем ответы из базы данных
+            List<QuizResult> allResults = quizResultRepository.findBySessionId(sessionId);
+
+            // Настраиваем заголовки ответа, чтобы браузер понял, что это файл для скачивания
+            response.setContentType("text/csv; charset=UTF-8");
+            response.setHeader("Content-Disposition", "attachment; filename=\"quiz_session_" + sessionId + "_report.csv\"");
+
+            // Пишем данные прямо в поток ответа
+            try (java.io.OutputStream os = response.getOutputStream();
+                 java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(os, java.nio.charset.StandardCharsets.UTF_8))) {
+
+                // Важнейший хак для Excel: записываем BOM (Byte Order Mark) для UTF-8, чтобы не поплыла кодировка кириллицы
+                os.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
+
+                // 2. Записываем "шапку" таблицы CSV (разделитель — точка с запятой для СНГ-стандарта Excel)
+                writer.println("Имя студента;ID вопроса;ID ответа;Результат;Затраченное время (сек)");
+
+                if (allResults.isEmpty()) {
+                    writer.println("Нет данных; ; ; ; ");
+                    writer.flush();
+                    return;
+                }
+
+                // 3. Заполняем матрицу строк результатами из PostgreSQL
+                for (QuizResult res : allResults) {
+                    String studentName = res.getStudentName() != null ? res.getStudentName() : "Аноним";
+                    Integer questionId = res.getQuestionId() != null ? res.getQuestionId() : 0;
+                    Integer answerId = res.getAnswerId() != null ? res.getAnswerId() : 0;
+                    String isCorrectStr = (res.getIsCorrect() != null && res.getIsCorrect()) ? "Верно" : "Неверно";
+                    Double timeSpent = res.getTimeSpent() != null ? res.getTimeSpent() : 0.0;
+
+                    // Экранируем имя студента на случай, если там внутри окажется точка с запятой
+                    if (studentName.contains(";")) {
+                        studentName = "\"" + studentName + "\"";
+                    }
+
+                    // Формируем строчку
+                    writer.printf("%s;%d;%d;%s;%.1f\n",
+                            studentName,
+                            questionId,
+                            answerId,
+                            isCorrectStr,
+                            timeSpent
+                    );
+                }
+
+                writer.flush();
+                log.info("[CSV EXPORT] Файл успешно сгенерирован и отправлен пользователю для сессии ID: {}", sessionId);
+            }
+
+        } catch (Exception e) {
+            log.error("[CSV EXPORT] КРИТИЧЕСКАЯ ОШИБКА при генерации CSV для сессии {}: ", sessionId, e);
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
     }
 }

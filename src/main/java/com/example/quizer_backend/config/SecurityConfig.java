@@ -48,7 +48,6 @@ public class SecurityConfig {
 
                         // Публичные REST эндпоинты
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // ИСПРАВЛЕНО ТУТ: заменили apiMatchers на requestMatchers
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
 
@@ -68,6 +67,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/participants/**").permitAll()
                         .requestMatchers("/api/questions/**").permitAll()
                         .requestMatchers("/api/results/**").permitAll()
+                        .requestMatchers("/api/quizzes/sessions/*/export-csv").permitAll()
 
                         // Закрытые эндпоинты
                         .requestMatchers("/api/users/**").authenticated()

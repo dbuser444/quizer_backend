@@ -2,7 +2,9 @@ package com.example.quizer_backend.controller;
 
 import com.example.quizer_backend.dto.PlayerResult;
 import com.example.quizer_backend.dto.QuizHistory;
+import com.example.quizer_backend.entity.Quiz;
 import com.example.quizer_backend.entity.QuizResult;
+import com.example.quizer_backend.repository.QuizRepository;
 import com.example.quizer_backend.repository.QuizResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class QuizResultController {
 
     private final QuizResultRepository quizResultRepository;
+    private final QuizRepository quizRepository;
 
     /**
      * Прием ответов от мобильного приложения
@@ -85,29 +88,37 @@ public class QuizResultController {
 
     @GetMapping("/users/{userId}/history")
     public ResponseEntity<List<QuizHistory>> getUserHistory(@PathVariable Long userId) {
-        // 1. Берем из базы все записи пользователя
         List<QuizResult> userResults = quizResultRepository.findByUserId(userId.intValue());
 
-        // 2. Превращаем их в удобный список для приложения
-        List<QuizHistory> history = userResults.stream()
-                .collect(Collectors.groupingBy(QuizResult::getSessionId)) // Группируем по игре
-                .entrySet().stream()
-                .map(entry -> {
-                    int total = entry.getValue().size();
-                    int correct = (int) entry.getValue().stream().filter(r -> Boolean.TRUE.equals(r.getIsCorrect())).count();
-                    int scorePercent = (total > 0) ? (correct * 100 / total) : 0;
+        return ResponseEntity.ok(
+                userResults.stream()
+                        .collect(Collectors.groupingBy(QuizResult::getSessionId))
+                        .entrySet().stream()
+                        .sorted((e1, e2) -> e2.getKey().compareTo(e1.getKey()))
+                        .map(entry -> {
+                            List<QuizResult> results = entry.getValue();
+                            // Приводим Integer к Long, чтобы найти в QuizRepository
+                            Long quizId = results.get(0).getQuizId().longValue();
 
-                    return new QuizHistory(
-                            "Викторина #" + entry.getValue().get(0).getQuizId(), // Можно доработать, чтобы брать имя квиза
-                            "Завершена", // Здесь можно брать дату из session
-                            scorePercent,
-                            total,
-                            correct
-                    );
-                })
-                .collect(Collectors.toList());
+                            // Запрос к базе данных за названием викторины
+                            String title = quizRepository.findById(quizId)
+                                    .map(Quiz::getTitle)
+                                    .orElse("Викторина #" + quizId);
 
-        return ResponseEntity.ok(history);
+                            int total = results.size();
+                            int correct = (int) results.stream().filter(r -> Boolean.TRUE.equals(r.getIsCorrect())).count();
+                            int scorePercent = (total > 0) ? (correct * 100 / total) : 0;
+
+                            return new QuizHistory(
+                                    title,
+                                    "Завершена",
+                                    scorePercent,
+                                    total,
+                                    correct
+                            );
+                        })
+                        .collect(Collectors.toList())
+        );
     }
     @GetMapping("/users/{userId}/stats")
     public ResponseEntity<Map<String, Object>> getUserStats(@PathVariable Long userId) {
